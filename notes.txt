@@ -1,9 +1,0 @@
-Things learned from express js crash course..
-
--Express is capable of serving satic resources.. example below!
--It can be used to build apis to return data to front end like react
--It can be used for templating.
-I'm interested now only in building apis..
-
-Serving static files using app.use(express.static())
-Basically renders the ${endpoint}.html in the static folder
