@@ -2,8 +2,13 @@ const express = require("express");
 const router = express.Router();
 const User = require("../Model/User");
 const bcrypt = require("bcryptjs");
-const {registerValidation, loginValidation} = require("../validation");
-const jwt = require ('jsonwebtoken');
+const {
+  registerValidation,
+  loginValidation,
+  tokenValidation,
+} = require("../validation");
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 //Create user
 router.post("/", registerValidation, (req, res) => {
@@ -22,8 +27,9 @@ router.post("/", registerValidation, (req, res) => {
         email: req.body.email,
         age: req.body.age,
         country: req.body.country,
-        password: bcrypt.hashSync(req.body.password,bcrypt.genSaltSync(10)),
+        password: bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10)),
         joined: new Date(),
+        role: req.body.role,
       });
       user
         .save()
@@ -54,11 +60,17 @@ router.delete("/:id", (req, res) => {
 });
 
 //Return all the user.. This will be used by admin only
-router.get("/", (req, res) => {
-  User.find((err, users) => {
-    if (err) res.json({ message: err });
+router.get("/", tokenValidation, (req, res) => {
+  User.findOne({ _id: req.user }, (err, user) => {
+    if (err) res.send(err);
+    else if (user.role != "admin") res.send("Denied");
     else {
-      res.json(users);
+      User.find((err, users) => {
+        if (err) res.json({ message: err });
+        else {
+          res.json(users);
+        }
+      });
     }
   });
 });
@@ -69,9 +81,8 @@ router.get("/:id", (req, res) => {
     if (err) {
       res.send(err);
     } else if (user.length !== 0) {
-       res.json(user._id);
-    }
-    else {
+      res.json(user._id);
+    } else {
       res.send("Not such user found");
     }
   });
@@ -94,9 +105,10 @@ router.patch("/:id", (req, res) => {
               req.body.email !== undefined ? req.body.email : user[0].email,
             password:
               req.body.password !== undefined
-                ? bcrypt.hashSync(req.body.password,bcrypt.genSaltSync(10))
+                ? bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10))
                 : user[0].password,
             age: req.body.age != undefined ? req.body.age : user[0].age,
+            role: req.body.role != undefined ? req.body.role : user[0].role,
           },
         },
         (err, resl) => {
@@ -111,36 +123,29 @@ router.patch("/:id", (req, res) => {
 });
 
 //Login route
-router.post('/login',loginValidation,(req,res) =>{
-  User.findOne({email : req.body.email}, (err,user) =>{
-    if (err)
-    console.log(err);
+router.post("/login", loginValidation, (req, res) => {
+  User.findOne({ email: req.body.email }, (err, user) => {
+    if (err) console.log(err);
     else if (user !== null) {
-      bcrypt.compare(req.body.password,user.password, (err,resl) =>{
-        if (err)
-        console.log(err);
+      bcrypt.compare(req.body.password, user.password, (err, resl) => {
+        if (err) console.log(err);
         else if (resl) {
-          jwt.sign({_id: user._id},"SSSHHH",(err,token) => {
-            if (err)
-            console.log(err);
+          jwt.sign({ _id: user._id }, process.env.SECRET, (err, token) => {
+            if (err) console.log(err);
             else {
-              console.log(token);
               res.json({
-                token : token,
-                message : "Login Successful"
+                token: token,
+                message: "Login Successful",
               });
             }
-          })
-
-        }
-        else if(!resl) {
+          });
+        } else if (!resl) {
           res.send("login failed");
         }
       });
-      }
-      else {
-        res.send("Please register");
+    } else {
+      res.send("Please register");
     }
-  })
-})
+  });
+});
 module.exports = router;
