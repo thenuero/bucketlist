@@ -124,21 +124,27 @@ router.patch("/:id", (req, res) => {
 
 //Login route
 router.post("/login", loginValidation, (req, res) => {
+  console.log(req.originalUrl);
   User.findOne({ email: req.body.email }, (err, user) => {
     if (err) console.log(err);
     else if (user !== null) {
       bcrypt.compare(req.body.password, user.password, (err, resl) => {
         if (err) console.log(err);
         else if (resl) {
-          jwt.sign({ _id: user._id }, process.env.SECRET, (err, token) => {
-            if (err) console.log(err);
-            else {
-              res.json({
-                token: token,
-                message: "Login Successful",
-              });
+          jwt.sign(
+            { _id: user._id },
+            process.env.SECRET,
+            //{ expiresIn: "30000ms" }, add it later not during development
+            (err, token) => {
+              if (err) console.log(err);
+              else {
+                res.json({
+                  token: token,
+                  message: "Login Successful",
+                });
+              }
             }
-          });
+          );
         } else if (!resl) {
           res.send("login failed");
         }

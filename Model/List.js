@@ -11,6 +11,7 @@ const listSchema = mongoose.Schema({
   },
   todo: String,
   tag: String,
+  owner: String,
 });
 
 module.exports = mongoose.model("List", listSchema);

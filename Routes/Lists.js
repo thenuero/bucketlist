@@ -1,10 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const List = require("../Model/List");
+const { tokenValidation } = require("../validation");
 
 //Returns all the list item
-router.get("/", (req, res) => {
-  List.find((err, lists) => {
+router.get("/", tokenValidation, (req, res) => {
+  List.find({ owner: req.user }, (err, lists) => {
     if (err) res.json({ message: err });
     else {
       res.json(lists);
@@ -12,23 +13,25 @@ router.get("/", (req, res) => {
   });
 });
 
-//Get a particular list item
-router.get("/:id", (req, res) => {
-  List.find({ _id: req.params.id }, (err, lists) => {
-    if (err) res.json({ msg: err });
-    else {
-      res.json(lists);
-    }
-  });
-});
+//Get a particular list item {Cleanup stuff.. Will not be required}
+
+// router.get("/:id", (req, res) => {
+//   List.find({ _id: req.params.id }, (err, lists) => {
+//     if (err) res.json({ msg: err });
+//     else {
+//       res.json(lists);
+//     }
+//   });
+// });
 
 //Creates a list item
-router.post("/", (req, res) => {
+router.post("/", tokenValidation, (req, res) => {
   const list = new List({
     name: req.body.name,
     description: req.body.description,
     todo: req.body.todo,
     tag: req.body.tag,
+    owner: req.user,
   });
   list
     .save()
