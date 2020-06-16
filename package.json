@@ -4,7 +4,7 @@
   "description": "My express tutorial",
   "main": "index.js",
   "scripts": {
-    "start": "node app",
+    "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "author": "Nikhil",

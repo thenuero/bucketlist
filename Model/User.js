@@ -22,4 +22,18 @@ const userSchema = mongoose.Schema({
   role: String,
 });
 
+userSchema.post("findOne", function (res, next) {
+  if (!res) {
+    next(new Error("Nothing found"));
+  }
+  next();
+});
+
+userSchema.post("deleteOne", function (res, next) {
+  if (res.n == 0) {
+    next(new Error("User doesn't exits"));
+  }
+  next();
+});
+
 module.exports = mongoose.model("User", userSchema);

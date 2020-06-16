@@ -6,7 +6,7 @@ const { tokenValidation } = require("../validation");
 //Returns all the list item
 router.get("/", tokenValidation, (req, res) => {
   List.find({ owner: req.user }, (err, lists) => {
-    if (err) res.json({ message: err });
+    if (err) res.status(400).json({ message: err.message });
     else {
       res.json(lists);
     }
@@ -61,30 +61,35 @@ router.delete("/:id", (req, res) => {
 
 //Update list list
 router.patch("/:id", (req, res) => {
-  //console.log(req.body.country !== undefined);
-  List.find({ _id: req.params.id }, (err, list) => {
-    if (err) res.send(err);
-    else {
-      List.updateOne(
-        { _id: req.params.id },
-        {
-          $set: {
-            name: req.body.name !== undefined ? req.body.name : list[0].name,
-            description:
-              req.body.description !== undefined
-                ? req.body.description
-                : list[0].description,
-            todo: req.body.todo !== undefined ? req.body.todo : list[0].todo,
-            tag: req.body.tag != undefined ? req.body.tag : list[0].tag,
+  List.findOne({ _id: req.params.id }, (err, list) => {
+    if (err) {
+      console.log(err);
+      return res.status(400).send(err.message);
+    } else {
+      try {
+        List.updateOne(
+          { _id: req.params.id },
+          {
+            $set: {
+              name: req.body.name !== undefined ? req.body.name : list.name,
+              description:
+                req.body.description !== undefined
+                  ? req.body.description
+                  : list.description,
+              todo: req.body.todo !== undefined ? req.body.todo : list.todo,
+              tag: req.body.tag != undefined ? req.body.tag : list.tag,
+            },
           },
-        },
-        (err, resl) => {
-          if (err) res.send(err);
-          else {
-            res.json(resl);
+          (err, resl) => {
+            if (err) res.send(err);
+            else {
+              res.json(resl);
+            }
           }
-        }
-      );
+        );
+      } catch (e) {
+        res.status(500).send(e.message);
+      }
     }
   });
 });

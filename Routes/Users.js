@@ -8,54 +8,44 @@ const {
   tokenValidation,
 } = require("../validation");
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 
 //Create user
 router.post("/", registerValidation, (req, res) => {
-  User.find({ email: req.body.email }, (err, data) => {
-    if (err) res.json({ message: err });
-    else if (data.length > 0) {
-      res.statusCode = 400;
-      res.json({ message: "User already exits" });
-      res.end();
-      return;
-    } else {
-      const user = new User({
-        username: req.body.username,
-        firstname: req.body.firstname,
-        lastname: req.body.lastname,
-        email: req.body.email,
-        age: req.body.age,
-        country: req.body.country,
-        password: bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10)),
-        joined: new Date(),
-        role: req.body.role,
-      });
-      user
-        .save()
-        .then((data) => {
-          res.json(data._id);
-        })
-        .catch((err) => {
-          res.json({ message: err });
-        });
+  User.findOne({ email: req.body.email }, (err, data) => {
+    if (!err) {
+      return res.status(400).send("User already exits");
     }
+    const user = new User({
+      username: req.body.username,
+      firstname: req.body.firstname,
+      lastname: req.body.lastname,
+      email: req.body.email,
+      age: req.body.age,
+      country: req.body.country,
+      password: bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10)),
+      joined: new Date(),
+      role: req.body.role,
+    });
+    user
+      .save()
+      .then((data) => {
+        res.json(data._id);
+      })
+      .catch((err) => {
+        res.json({ message: err });
+      });
   });
 });
 
 //Delete a user
 router.delete("/:id", (req, res) => {
   User.deleteOne({ _id: req.params.id }, (err, delres) => {
+    console.log(err);
     if (err) {
-      res.json({ message: err });
+      return res.status(400).json({ res: false, message: err.message });
     }
-    if (delres.deletedCount <= 0) {
-      res.statusCode = 400;
-      res.json({ message: "User doesn't exists. Try again" });
-    } else {
-      res.statusCode = 200;
-      res.json({ message: "User deleted.." });
-    }
+    res.statusCode = 200;
+    res.json({ message: "User deleted.." });
   });
 });
 
@@ -79,7 +69,10 @@ router.get("/", tokenValidation, (req, res) => {
 router.get("/:id", (req, res) => {
   User.findOne({ _id: req.params.id }, (err, user) => {
     if (err) {
-      res.send(err);
+      res.status(400).json({
+        res: false,
+        message: err.message,
+      });
     } else if (user.length !== 0) {
       res.json(user._id);
     } else {
@@ -90,25 +83,23 @@ router.get("/:id", (req, res) => {
 
 //Update user fields
 router.patch("/:id", (req, res) => {
-  User.find({ _id: req.params.id }, (err, user) => {
-    if (err) res.send(err);
-    else {
+  User.findOne({ _id: req.params.id }, (err, user) => {
+    if (err) {
+      return res.send(err.message);
+    } else {
       User.updateOne(
         { _id: req.params.id },
         {
           $set: {
             country:
-              req.body.country !== undefined
-                ? req.body.country
-                : user[0].country,
-            email:
-              req.body.email !== undefined ? req.body.email : user[0].email,
+              req.body.country !== undefined ? req.body.country : user.country,
+            email: req.body.email !== undefined ? req.body.email : user.email,
             password:
               req.body.password !== undefined
                 ? bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10))
-                : user[0].password,
-            age: req.body.age != undefined ? req.body.age : user[0].age,
-            role: req.body.role != undefined ? req.body.role : user[0].role,
+                : user.password,
+            age: req.body.age != undefined ? req.body.age : user.age,
+            role: req.body.role != undefined ? req.body.role : user.role,
           },
         },
         (err, resl) => {
@@ -124,10 +115,10 @@ router.patch("/:id", (req, res) => {
 
 //Login route
 router.post("/login", loginValidation, (req, res) => {
-  console.log(req.originalUrl);
   User.findOne({ email: req.body.email }, (err, user) => {
-    if (err) console.log(err);
-    else if (user !== null) {
+    if (err) {
+      return res.status(400).send("Please register");
+    } else if (user !== null) {
       bcrypt.compare(req.body.password, user.password, (err, resl) => {
         if (err) console.log(err);
         else if (resl) {
@@ -146,12 +137,11 @@ router.post("/login", loginValidation, (req, res) => {
             }
           );
         } else if (!resl) {
-          res.send("login failed");
+          res.status(404).send("login failed");
         }
       });
-    } else {
-      res.send("Please register");
     }
   });
 });
+
 module.exports = router;
