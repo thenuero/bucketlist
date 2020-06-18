@@ -6,23 +6,12 @@ const { tokenValidation } = require("../validation");
 //Returns all the list item
 router.get("/", tokenValidation, (req, res) => {
   List.find({ owner: req.user }, (err, lists) => {
-    if (err) res.status(400).json({ message: err.message });
+    if (err) res.status(err.statusCode).json({ message: err.message });
     else {
       res.json(lists);
     }
   });
 });
-
-//Get a particular list item {Cleanup stuff.. Will not be required}
-
-// router.get("/:id", (req, res) => {
-//   List.find({ _id: req.params.id }, (err, lists) => {
-//     if (err) res.json({ msg: err });
-//     else {
-//       res.json(lists);
-//     }
-//   });
-// });
 
 //Creates a list item
 router.post("/", tokenValidation, (req, res) => {

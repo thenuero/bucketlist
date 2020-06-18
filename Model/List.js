@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const CustomError = require("../Utils/customError");
 
 const listSchema = mongoose.Schema({
   name: {
@@ -14,22 +15,16 @@ const listSchema = mongoose.Schema({
   owner: String,
 });
 
-listSchema.pre("updateOne", function (next) {
-  console.log("test");
-  next();
-});
-
 listSchema.post("findOne", function (res, next) {
   if (!res) {
-    console.log("its here");
-    next(new Error("Sorry.. Nothing found!"));
+    next(new CustomError("Sorry.. Nothing found!", 404));
   }
   next();
 });
 
 listSchema.post("find", function (res, next) {
   if (res.length === 0) {
-    next(new Error("No Items for this user!"));
+    next(new CustomError("No Items for this user!", 404));
   }
   next();
 });

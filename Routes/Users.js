@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../Model/User");
 const bcrypt = require("bcryptjs");
+const CustomError = require("../Utils/customError");
 const {
   registerValidation,
   loginValidation,
@@ -11,30 +12,38 @@ const jwt = require("jsonwebtoken");
 
 //Create user
 router.post("/", registerValidation, (req, res) => {
-  User.findOne({ email: req.body.email }, (err, data) => {
-    if (!err) {
-      return res.status(400).send("User already exits");
-    }
-    const user = new User({
-      username: req.body.username,
-      firstname: req.body.firstname,
-      lastname: req.body.lastname,
-      email: req.body.email,
-      age: req.body.age,
-      country: req.body.country,
-      password: bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10)),
-      joined: new Date(),
-      role: req.body.role,
-    });
-    user
-      .save()
-      .then((data) => {
-        res.json(data._id);
-      })
-      .catch((err) => {
-        res.json({ message: err });
+  try {
+    User.findOne({ email: req.body.email }, req.originalUrl, (err, data) => {
+      if (err) {
+        return res.status(400).send(err.message);
+      }
+      if (data) {
+        return res.status(400).send("User already exits");
+      }
+      const user = new User({
+        username: req.body.username,
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
+        email: req.body.email,
+        age: req.body.age,
+        country: req.body.country,
+        password: bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10)),
+        joined: new Date(),
+        role: req.body.role,
       });
-  });
+      user
+        .save()
+        .then((data) => {
+          res.json(data._id);
+        })
+        .catch((err) => {
+          res.json({ message: err });
+        });
+    });
+  } catch (e) {
+    console.log(e);
+    return res.send(e.message);
+  }
 });
 
 //Delete a user
@@ -69,14 +78,20 @@ router.get("/", tokenValidation, (req, res) => {
 router.get("/:id", (req, res) => {
   User.findOne({ _id: req.params.id }, (err, user) => {
     if (err) {
-      res.status(400).json({
-        res: false,
-        message: err.message,
-      });
-    } else if (user.length !== 0) {
-      res.json(user._id);
+      if (err instanceof CustomError) {
+        return res.status(err.statusCode).json({
+          res: false,
+          message: err.message,
+        });
+      } else {
+        return res.status(400).json({
+          res: false,
+          message: "Faulty id",
+        });
+      }
     } else {
-      res.send("Not such user found");
+      console.log(user);
+      res.status(200).json(user);
     }
   });
 });

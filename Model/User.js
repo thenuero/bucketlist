@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const CustomError = require("../Utils/customError");
 
 const userSchema = mongoose.Schema({
   username: {
@@ -23,17 +24,29 @@ const userSchema = mongoose.Schema({
 });
 
 userSchema.post("findOne", function (res, next) {
-  if (!res) {
-    next(new Error("Nothing found"));
+  console.log(this);
+  var url;
+  for (k in this._fields) url = k;
+  console.log(url);
+  if (!res && url === "/users") {
+    next();
+  } else if (!res) {
+    next(new CustomError("No User Found", 400));
   }
   next();
 });
 
 userSchema.post("deleteOne", function (res, next) {
   if (res.n == 0) {
-    next(new Error("User doesn't exits"));
+    next(new CustomError("No user found", 400));
   }
   next();
 });
 
+userSchema.pre("findOne", function (next) {
+  var obj;
+  for (k in this._fields) obj = k;
+  //console.log(obj);
+  next();
+});
 module.exports = mongoose.model("User", userSchema);
