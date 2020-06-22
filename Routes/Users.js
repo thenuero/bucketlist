@@ -1,4 +1,5 @@
 const express = require("express");
+const crypto = require("crypto");
 const router = express.Router();
 const User = require("../Model/User");
 const bcrypt = require("bcryptjs");
@@ -9,6 +10,7 @@ const {
   tokenValidation,
 } = require("../validation");
 const jwt = require("jsonwebtoken");
+const SendMail = require("../Utils/mail");
 
 //Create user
 router.post("/", registerValidation, (req, res) => {
@@ -67,6 +69,7 @@ router.get("/", tokenValidation, (req, res) => {
       User.find((err, users) => {
         if (err) res.json({ message: err });
         else {
+          console.log(users[1].get("username"));
           res.json(users);
         }
       });
@@ -90,7 +93,6 @@ router.get("/:id", (req, res) => {
         });
       }
     } else {
-      console.log(user);
       res.status(200).json(user);
     }
   });
@@ -108,11 +110,6 @@ router.patch("/:id", (req, res) => {
           $set: {
             country:
               req.body.country !== undefined ? req.body.country : user.country,
-            email: req.body.email !== undefined ? req.body.email : user.email,
-            password:
-              req.body.password !== undefined
-                ? bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10))
-                : user.password,
             age: req.body.age != undefined ? req.body.age : user.age,
             role: req.body.role != undefined ? req.body.role : user.role,
           },
@@ -157,6 +154,90 @@ router.post("/login", loginValidation, (req, res) => {
       });
     }
   });
+});
+
+router.post("/forgotpassword", (req, res) => {
+  User.findOne({ email: req.body.email }, (err, user) => {
+    if (err) {
+      return res.status(err.statusCode).send(err.message);
+    }
+    const resetToken = user.getResetToken();
+
+    user
+      .save()
+      .then((data) => {
+        //  res.status(200).send(data);
+      })
+      .catch((err) => {
+        res.status(500).send("Something screwed up");
+      });
+    //Create reset url
+    const resetUrl = `${req.protocol}://${req.get(
+      "host"
+    )}/users/resetpassword/${resetToken}`;
+
+    const message = `Some requested to reset your password click the link below to reset the password. \n\n ${resetUrl}`;
+
+    SendMail({
+      email: user.email,
+      subject: "Password reset token",
+      message,
+    })
+      .then((data) => {
+        res.status(200).send("Mail sent");
+        console.log(`Email sent ${data}`);
+      })
+      .catch((err) => {
+        console.log(`Some error occured ${err}`);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        user
+          .save()
+          .then((data) => {
+            console.log(`user updated`);
+          })
+          .catch((err) => {
+            console.log("couldnt be saved");
+          });
+        res.status(500).send("Internal error");
+      });
+  });
+});
+
+router.put("/resetpassword/:token", (req, res) => {
+  const resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+  console.log(resetPasswordToken);
+  User.findOne(
+    {
+      resetPasswordToken,
+      //resetPasswordExpires: { $gt: Date.now() },
+    },
+    (err, user) => {
+      if (err) {
+        console.log(err);
+        return res.status(err.statusCode).send(err.message);
+      } else {
+        user.password = bcrypt.hashSync(
+          req.body.password,
+          bcrypt.genSaltSync(10)
+        );
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        user
+          .save()
+          .then((data) => {
+            res.status(200).send("Password changed");
+          })
+          .catch((err) => {
+            res.status(500).send("Internal error");
+          });
+      }
+    }
+  );
 });
 
 module.exports = router;

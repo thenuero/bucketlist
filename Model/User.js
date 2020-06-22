@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const CustomError = require("../Utils/customError");
 
@@ -21,13 +22,13 @@ const userSchema = mongoose.Schema({
   password: String,
   joined: Date,
   role: String,
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 });
 
 userSchema.post("findOne", function (res, next) {
-  console.log(this);
   var url;
   for (k in this._fields) url = k;
-  console.log(url);
   if (!res && url === "/users") {
     next();
   } else if (!res) {
@@ -38,7 +39,7 @@ userSchema.post("findOne", function (res, next) {
 
 userSchema.post("deleteOne", function (res, next) {
   if (res.n == 0) {
-    next(new CustomError("No user found", 400));
+    next(new CustomError("No user found", 404));
   }
   next();
 });
@@ -49,4 +50,21 @@ userSchema.pre("findOne", function (next) {
   //console.log(obj);
   next();
 });
+
+userSchema.methods.getResetToken = function () {
+  //Generate the token
+  const token = crypto.randomBytes(20).toString("hex");
+
+  //Hash and store the token
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  //Set Expire time
+  this.resetPasswordExpires = new Date() + 10 * 60 * 1000;
+
+  return token;
+};
+
 module.exports = mongoose.model("User", userSchema);
