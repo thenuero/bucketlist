@@ -7,11 +7,12 @@ const PORT = process.env.PORT || 5000;
 const listsRoute = require("./Routes/Lists");
 const usersRoute = require("./Routes/Users");
 const cors = require("cors");
-
+const cookieParser = require("cookie-parser");
 //Create the app
 const app = express();
 
 //Using middleware
+app.use(cookieParser());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());

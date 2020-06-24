@@ -134,20 +134,19 @@ router.post("/login", loginValidation, (req, res) => {
       bcrypt.compare(req.body.password, user.password, (err, resl) => {
         if (err) console.log(err);
         else if (resl) {
-          jwt.sign(
-            { _id: user._id },
-            process.env.SECRET,
-            //{ expiresIn: "30000ms" }, add it later not during development
-            (err, token) => {
-              if (err) console.log(err);
-              else {
-                res.json({
-                  token: token,
-                  message: "Login Successful",
-                });
-              }
-            }
-          );
+          const token = user.getJwtToken(req.originalUrl);
+          console.log(Date.now() + process.env.JWT_EXPIRES);
+          const option = {
+            expires: new Date(
+              Date.now() + process.env.JWT_EXPIRES * 24 * 60 * 60 * 1000
+            ),
+            httpOnly: true,
+          };
+          res.status(200).cookie("token", token, option).json({
+            success: true,
+            token,
+            message: "Login success",
+          });
         } else if (!resl) {
           res.status(404).send("login failed");
         }
@@ -176,7 +175,7 @@ router.post("/forgotpassword", (req, res) => {
       "host"
     )}/users/resetpassword/${resetToken}`;
 
-    const message = `Some requested to reset your password click the link below to reset the password. \n\n ${resetUrl}`;
+    const message = `Someone requested to reset your password click the link below to reset the password. \n\n ${resetUrl}`;
 
     SendMail({
       email: user.email,
@@ -209,7 +208,6 @@ router.put("/resetpassword/:token", (req, res) => {
     .createHash("sha256")
     .update(req.params.token)
     .digest("hex");
-  console.log(resetPasswordToken);
   User.findOne(
     {
       resetPasswordToken,
@@ -220,10 +218,7 @@ router.put("/resetpassword/:token", (req, res) => {
         console.log(err);
         return res.status(err.statusCode).send(err.message);
       } else {
-        user.password = bcrypt.hashSync(
-          req.body.password,
-          bcrypt.genSaltSync(10)
-        );
+        user.password = user.getEncryptedPass(req.body.password);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
 

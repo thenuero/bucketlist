@@ -1,5 +1,5 @@
 error handling
-forgot password
+forgot password [Done]
 forgot email [This should not be done. Email remains unchanged.]
 logout
 cookies

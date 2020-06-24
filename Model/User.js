@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const CustomError = require("../Utils/customError");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
 const userSchema = mongoose.Schema({
   username: {
@@ -44,10 +46,11 @@ userSchema.post("deleteOne", function (res, next) {
   next();
 });
 
-userSchema.pre("findOne", function (next) {
-  console.log(this.resetPasswordExpires > Date.now());
-  next();
-});
+//Will use when required
+// userSchema.pre("findOne", function (next) {
+//   console.log(this.resetPasswordExpires > Date.now());
+//   next();
+// });
 
 userSchema.methods.getResetToken = function () {
   //Generate the token
@@ -63,6 +66,19 @@ userSchema.methods.getResetToken = function () {
   this.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
   return token;
+};
+
+userSchema.methods.getJwtToken = function (arg) {
+  console.log(process.env.JWT_SECRET);
+  var token = jwt.sign({ _id: this._id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES,
+  });
+  return token;
+};
+
+userSchema.methods.getEncryptedPass = function (password) {
+  const epass = bcrypt.hashSync(password, bcrypt.genSaltSync(10));
+  return epass;
 };
 
 module.exports = mongoose.model("User", userSchema);
