@@ -213,7 +213,7 @@ router.put("/resetpassword/:token", (req, res) => {
   User.findOne(
     {
       resetPasswordToken,
-      //resetPasswordExpires: { $gt: Date.now() },
+      resetPasswordExpires: { $gt: Date.now() },
     },
     (err, user) => {
       if (err) {

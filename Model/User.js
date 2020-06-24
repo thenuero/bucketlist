@@ -45,9 +45,7 @@ userSchema.post("deleteOne", function (res, next) {
 });
 
 userSchema.pre("findOne", function (next) {
-  var obj;
-  for (k in this._fields) obj = k;
-  //console.log(obj);
+  console.log(this.resetPasswordExpires > Date.now());
   next();
 });
 
@@ -62,7 +60,7 @@ userSchema.methods.getResetToken = function () {
     .digest("hex");
 
   //Set Expire time
-  this.resetPasswordExpires = new Date() + 10 * 60 * 1000;
+  this.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
   return token;
 };
