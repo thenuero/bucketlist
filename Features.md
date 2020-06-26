@@ -2,7 +2,7 @@ error handling
 forgot password [Done]
 forgot email [This should not be done. Email remains unchanged.]
 logout
-cookies
+cookies [Done]
 session management
 verify email
 different status on lists {achieved, postponed, on pause...}
